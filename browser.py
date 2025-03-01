@@ -13,7 +13,13 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import random
 import os
+from pathlib import Path
 #from PyQt6.QtWebEngineCore import QWebEngineHttpHandler
+
+# Create a constant for the podcasts directory
+PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
+# Create the podcasts directory if it doesn't exist
+os.makedirs(PODCASTS_DIR, exist_ok=True)
 
 class ModernUrlBar(QLineEdit):
     def __init__(self):
@@ -43,10 +49,18 @@ class PodcastPlayer(QMainWindow):
         self.setWindowTitle(f'Playing: {podcast_name}')
         self.setGeometry(200, 200, 800, 400)
         
+        # Store podcast info
+        self.podcast_name = podcast_name
+        self.mp3_path = os.path.join(PODCASTS_DIR, f"{podcast_name}.mp3")
+        
         # Main widget and layout
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
+        
+        # Add status label
+        self.status_label = QLabel("")
+        layout.addWidget(self.status_label)
         
         # Style
         self.setStyleSheet('''
@@ -110,8 +124,38 @@ class PodcastPlayer(QMainWindow):
         self.current_frame = 0
         self.is_playing = False
         
+        # Check if MP3 exists
+        self.check_mp3_exists()
+        
         # Initial waveform plot
         self.plot_waveform()
+        
+    def check_mp3_exists(self):
+        if not os.path.exists(self.mp3_path):
+            self.status_label.setText(f"Please place MP3 file at:\n{self.mp3_path}")
+            self.play_button.setEnabled(False)
+        else:
+            self.status_label.setText("MP3 file found!")
+            self.play_button.setEnabled(True)
+        
+    def play_audio(self):
+        if not self.is_playing and os.path.exists(self.mp3_path):
+            try:
+                pygame.mixer.music.load(self.mp3_path)
+                pygame.mixer.music.play()
+                self.is_playing = True
+                self.timer.start(50)  # Update every 50ms
+                self.status_label.setText("Playing...")
+            except Exception as e:
+                self.status_label.setText(f"Error playing file: {str(e)}")
+            
+    def stop_audio(self):
+        pygame.mixer.music.stop()
+        self.is_playing = False
+        self.timer.stop()
+        self.current_frame = 0
+        self.plot_waveform()
+        self.status_label.setText("Stopped")
         
     def plot_waveform(self):
         self.ax.clear()
@@ -120,22 +164,6 @@ class PodcastPlayer(QMainWindow):
         self.ax.set_xlim(0, 1000)
         self.ax.grid(True, color='#333333')
         self.canvas.draw()
-        
-    def play_audio(self):
-        if not self.is_playing:
-            # For demonstration, we'll just play a simple beep sound
-            frequency = 440  # Hz
-            duration = 1000  # ms
-            pygame.mixer.Sound(np.sin(2 * np.pi * np.arange(44100) * frequency / 44100).astype(np.float32)).play()
-            self.is_playing = True
-            self.timer.start(50)  # Update every 50ms
-            
-    def stop_audio(self):
-        pygame.mixer.stop()
-        self.is_playing = False
-        self.timer.stop()
-        self.current_frame = 0
-        self.plot_waveform()
         
     def update_waveform(self):
         if self.is_playing:
@@ -271,7 +299,11 @@ class Browser(QMainWindow):
         podcasts_layout = QVBoxLayout(podcasts_section)
         podcasts_label = QLabel("Podcasts")
         self.podcasts_list = QListWidget()
-        self.podcasts_list.addItems(["Tech Talk Daily", "Code Chronicles", "Dev Discussion", "Python Pioneers"])
+        
+        # Get list of available podcasts from the podcasts directory
+        available_podcasts = self.get_available_podcasts()
+        self.podcasts_list.addItems(available_podcasts)
+        
         self.podcasts_list.itemClicked.connect(self.open_podcast_player)
         podcasts_layout.addWidget(podcasts_label)
         podcasts_layout.addWidget(self.podcasts_list)
@@ -333,6 +365,17 @@ class Browser(QMainWindow):
         podcast_name = item.text()
         self.podcast_player = PodcastPlayer(podcast_name)
         self.podcast_player.show()
+
+    def get_available_podcasts(self):
+        # Default podcasts if no MP3s found
+        default_podcasts = ["Tech Talk Daily", "Code Chronicles", "Dev Discussion", "Python Pioneers"]
+        
+        # Get actual MP3 files from the podcasts directory
+        try:
+            mp3_files = [f.stem for f in Path(PODCASTS_DIR).glob("*.mp3")]
+            return mp3_files if mp3_files else default_podcasts
+        except Exception:
+            return default_podcasts
 
 def main():
     # Enable high DPI scaling - using updated attribute names
