@@ -16,11 +16,17 @@ import os
 from pathlib import Path
 from extract_template import generate_personalized_content
 from PyQt6.QtCore import QPropertyAnimation, QPoint, QEasingCurve
+from generate_code import get_code_from_screenshot
 
 # Create a constant for the podcasts directory
 PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
 # Create the podcasts directory if it doesn't exist
 os.makedirs(PODCASTS_DIR, exist_ok=True)
+
+# Create a constant for the screenshots directory
+SCREENSHOTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'screenshots')
+# Create the screenshots directory if it doesn't exist
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
 class ModernUrlBar(QLineEdit):
     def __init__(self):
@@ -397,6 +403,9 @@ class Browser(QMainWindow):
         # Add loading overlay
         self.loading_overlay = LoadingOverlay(self.web_view)
         self.loading_overlay.hide()
+        
+        # Flag to track if we need to take a screenshot after page load
+        self.take_screenshot_after_load = False
 
     def showLoading(self):
         self.loading_overlay.move(
@@ -469,8 +478,39 @@ class Browser(QMainWindow):
             # If no template exists, load the actual webpage
             self.web_view.setUrl(QUrl(url))
             
+            # Set flag to take screenshot after page loads
+            self.take_screenshot_after_load = True
+            
+            # Connect the loadFinished signal to take_screenshot function
+            self.web_view.loadFinished.connect(self.take_screenshot_after_fallback)
+            
         # Hide loading overlay
         self.hideLoading()
+        
+    def take_screenshot_after_fallback(self, success):
+        # Only take screenshot if the flag is set and page loaded successfully
+        if self.take_screenshot_after_load and success:
+            # Create a unique filename based on the current URL and timestamp
+            current_url = self.web_view.url().toString()
+            domain = urlparse(current_url).netloc
+            if domain.startswith('www.'):
+                domain = domain[4:]
+            
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{domain}_{timestamp}.png"
+            filepath = os.path.join(SCREENSHOTS_DIR, filename)
+            
+            # Take the screenshot
+            self.web_view.grab().save(filepath)
+            print(f"Screenshot saved to: {filepath}")
+            
+            # Reset the flag
+            self.take_screenshot_after_load = False
+            
+            # Disconnect the signal to avoid taking screenshots on subsequent loads
+            self.web_view.loadFinished.disconnect(self.take_screenshot_after_fallback)
+
 
     def update_url_bar(self, url):
         self.url_bar.setText(url.toString())

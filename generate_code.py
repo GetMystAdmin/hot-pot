@@ -4,6 +4,10 @@ import json
 import base64
 from PIL import Image
 import io
+import os
+import requests
+import time
+from pathlib import Path
 
 async def get_code_from_screenshot(screenshot_path: str, websocket_url: str = "ws://localhost:7001/generate-code"):
     # Convert image to base64
@@ -75,11 +79,11 @@ async def get_code_from_screenshot(screenshot_path: str, websocket_url: str = "w
 
 # Example usage
 async def main():
-    #code = await get_code_from_screenshot("test-frontend.JPG")
-    code = await get_code_from_screenshot("example-screen.png")
-    with open("example.html", "w", encoding="utf-8") as f:
-        f.write(code)
-    print("Generated code saved to example.html")
+    # Example usage of the function - use the async version when awaiting
+    await get_code_from_screenshot("example-screen.png")
+    
+    # Or use the synchronous version without await
+    # generate_html_from_screenshot("example-screen.png")
 
 if __name__ == "__main__":
     asyncio.run(main())
