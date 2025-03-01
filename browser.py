@@ -3,7 +3,7 @@ from PyQt6.QtCore import QUrl, Qt, QTimer, QSize
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                            QVBoxLayout, QLineEdit, QHBoxLayout,
                            QPushButton, QFrame, QLabel, QListWidget,
-                           QMessageBox, QCheckBox)
+                           QMessageBox, QCheckBox, QSlider)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QColor, QPalette, QFont, QIcon, QPainter
 from urllib.parse import urlparse
@@ -14,6 +14,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import random
 import os
+import json
 from pathlib import Path
 from extract_template import generate_personalized_content
 from PyQt6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QObject, QEvent, QThread
@@ -264,6 +265,59 @@ class AsyncHelper(QObject):
         future = asyncio.run_coroutine_threadsafe(coro, self.loop)
         return future
 
+class PersonalitySlider(QWidget):
+    def __init__(self, trait_name, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(5)
+        
+        # Create label with trait name and value
+        self.trait_name = trait_name
+        self.value_label = QLabel(f"{trait_name}: 5")
+        self.value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Create slider
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setMinimum(1)
+        self.slider.setMaximum(10)
+        self.slider.setValue(5)  # Default value
+        self.slider.setStyleSheet('''
+            QSlider::groove:horizontal {
+                height: 8px;
+                background: #2A2A2A;
+                border-radius: 4px;
+            }
+            QSlider::handle:horizontal {
+                background: #4CAF50;
+                border: none;
+                width: 18px;
+                height: 18px;
+                margin: -5px 0;
+                border-radius: 9px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #4CAF50;
+                border-radius: 4px;
+            }
+        ''')
+        
+        # Connect slider value change to update label
+        self.slider.valueChanged.connect(self.update_value)
+        
+        # Add widgets to layout
+        layout.addWidget(self.value_label)
+        layout.addWidget(self.slider)
+    
+    def update_value(self, value):
+        self.value_label.setText(f"{self.trait_name}: {value}")
+    
+    def get_value(self):
+        return self.slider.value()
+    
+    def set_value(self, value):
+        self.slider.setValue(value)
+
 class Browser(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -278,6 +332,9 @@ class Browser(QMainWindow):
         self.async_helper.moveToThread(self.async_thread)
         self.async_thread.started.connect(self.async_helper.setup_event_loop)
         self.async_thread.start()
+        
+        # Path for personality traits JSON file
+        self.personality_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personality_traits.json')
         
         # Set the window background color
         self.setStyleSheet('''
@@ -333,7 +390,7 @@ class Browser(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Left column for browser (70% of width)
+        # Left column for browser (60% of width)
         browser_column = QWidget()
         browser_layout = QVBoxLayout(browser_column)
         browser_layout.setSpacing(10)
@@ -431,7 +488,7 @@ class Browser(QMainWindow):
         ''')
         browser_layout.addWidget(self.web_view)
 
-        # Right column (30% of width)
+        # Right column (25% of width) for podcasts and chat
         right_column = QWidget()
         right_layout = QVBoxLayout(right_column)
         right_layout.setSpacing(20)
@@ -464,9 +521,68 @@ class Browser(QMainWindow):
         right_layout.addWidget(podcasts_section)
         right_layout.addWidget(chat_section)
 
+        # Third column (15% of width) for personality traits
+        personality_column = QWidget()
+        personality_column.setMaximumWidth(250)  # Limit the width to make it narrow
+        personality_layout = QVBoxLayout(personality_column)
+        personality_layout.setSpacing(10)
+        personality_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Personality traits section
+        personality_label = QLabel("Personality Traits")
+        personality_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Create sliders container
+        sliders_container = QWidget()
+        sliders_layout = QVBoxLayout(sliders_container)
+        sliders_layout.setSpacing(10)
+        sliders_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create personality trait sliders
+        self.personality_sliders = {
+            "Happiness": PersonalitySlider("Happiness"),
+            "Excitement": PersonalitySlider("Excitement"),
+            "Sarcasm": PersonalitySlider("Sarcasm"),
+            "Professionalism": PersonalitySlider("Professionalism"),
+            "Humor": PersonalitySlider("Humor"),
+            "Creativity": PersonalitySlider("Creativity"),
+            "Formality": PersonalitySlider("Formality")
+        }
+
+        # Add sliders to container
+        for slider in self.personality_sliders.values():
+            sliders_layout.addWidget(slider)
+
+        # Create save button
+        self.save_traits_button = QPushButton("Save Traits")
+        self.save_traits_button.setStyleSheet('''
+            QPushButton {
+                background-color: #4CAF50;
+                border: none;
+                border-radius: 15px;
+                padding: 10px;
+                color: #FFFFFF;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        ''')
+        self.save_traits_button.clicked.connect(self.save_personality_traits)
+
+        # Add widgets to personality layout
+        personality_layout.addWidget(personality_label)
+        personality_layout.addWidget(sliders_container)
+        personality_layout.addWidget(self.save_traits_button)
+        personality_layout.addStretch(1)  # Add stretch at the bottom to push content to the top
+
+        # Load saved personality traits if file exists
+        self.load_personality_traits()
+
         # Add columns to main layout with stretch factors
-        main_layout.addWidget(browser_column, stretch=70)
-        main_layout.addWidget(right_column, stretch=30)
+        main_layout.addWidget(browser_column, stretch=60)
+        main_layout.addWidget(right_column, stretch=25)
+        main_layout.addWidget(personality_column, stretch=15)
 
         # Connect web view signals
         self.web_view.urlChanged.connect(self.update_url_bar)
@@ -534,12 +650,8 @@ class Browser(QMainWindow):
             with open(temp_file, 'w', encoding='utf-8') as f:
                 f.write(cached_data['template'])
             
-            # Hardcoded personality traits for now
-            personality_traits = """Happiness: 8/10
-            Excitement: 7/10
-            Sarcasm: 3/10
-            Professionalism: 9/10
-            Humor: 6/10"""
+            # Get personality traits
+            personality_traits = self.get_personality_traits_text()
             
             # Generate personalized content
             generated_file = generate_personalized_content(temp_file, personality_traits)
@@ -795,6 +907,39 @@ class Browser(QMainWindow):
         ''')
         
         msg_box.exec()
+
+    def save_personality_traits(self):
+        """Save personality traits to JSON file."""
+        traits = {}
+        for trait_name, slider in self.personality_sliders.items():
+            traits[trait_name] = slider.get_value()
+        
+        try:
+            with open(self.personality_file, 'w') as f:
+                json.dump(traits, f, indent=4)
+            self.show_notification("Success", "Personality traits saved successfully.")
+        except Exception as e:
+            self.show_notification("Error", f"Failed to save personality traits: {str(e)}", is_error=True)
+    
+    def load_personality_traits(self):
+        """Load personality traits from JSON file if it exists."""
+        if os.path.exists(self.personality_file):
+            try:
+                with open(self.personality_file, 'r') as f:
+                    traits = json.load(f)
+                
+                for trait_name, value in traits.items():
+                    if trait_name in self.personality_sliders:
+                        self.personality_sliders[trait_name].set_value(value)
+            except Exception as e:
+                print(f"Error loading personality traits: {str(e)}")
+
+    def get_personality_traits_text(self):
+        """Get personality traits as formatted text."""
+        traits = []
+        for trait_name, slider in self.personality_sliders.items():
+            traits.append(f"{trait_name}: {slider.get_value()}/10")
+        return "\n".join(traits)
 
 def main():
     # Enable high DPI scaling - using updated attribute names
