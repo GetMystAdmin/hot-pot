@@ -16,10 +16,9 @@ except ImportError:
 
 # Load environment variables from ASTRA_OPENAI.env file
 load_dotenv('/Users/hongjoonchew/code/hot-pot/ASTRA_OPENAI.env')
-
-BASE_API_URL = "https://api.langflow.astra.datastax.com"
+BASE_API_URL = "http://127.0.0.1:7860"
 LANGFLOW_ID = "cec8e303-62e6-420f-aec8-61e7f486a121"
-FLOW_ID = "7079252e-ea0b-4da4-9891-ef4b79b6a7b5"
+FLOW_ID = "c3f30651-6c35-46ac-98b3-8ade04a4178d"
 APPLICATION_TOKEN = os.getenv("ASTRA_LANGFLOW_APPLICATION_TOKEN")
 ENDPOINT = "hotpot" # You can set a specific endpoint name in the flow settings
 
@@ -53,7 +52,7 @@ def run_flow(message: str,
         endpoint = ENDPOINT
     if not application_token:
         application_token = APPLICATION_TOKEN
-    api_url = f"{BASE_API_URL}/lf/{LANGFLOW_ID}/api/v1/run/{endpoint}"
+    api_url = f"{BASE_API_URL}/api/v1/run/{endpoint}"
 
     payload = {
         "input_value": message,

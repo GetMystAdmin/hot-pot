@@ -1,4 +1,4 @@
-PyQt6==6.8.2
+PyQt6==6.8.1
 PyQt6-WebEngine==6.8.0
 chardet==5.2.0
 beautifulsoup4==4.12.2
@@ -9,3 +9,7 @@ matplotlib==3.9.2
 sounddevice
 openai
 langflow==1.2.0
+pydub==0.25.1
+ffmpeg==1.4
+openai
+pydub
