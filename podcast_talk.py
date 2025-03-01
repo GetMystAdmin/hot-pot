@@ -36,7 +36,7 @@ class PodcastTalk:
         voices = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
         for content in transcript:
             if content["host"] not in self.hosts:
-                randomizer = random.randint(len(voices))
+                randomizer = random.randint(0, len(voices) - 1)
                 self.hosts[content["host"]] = voices[randomizer]
                 voices.remove(voices[randomizer])
         print(self.hosts)
@@ -51,7 +51,8 @@ class PodcastTalk:
             end_time = time.time()
             print(f"Time taken to generate podcast: {end_time - start_time} seconds")
             print("Processing podcast metadata")
-            self.podcast = json.loads(transcript_output["outputs"][0]["outputs"][0]['results']['message']['data']['text'])
+            output = transcript_output["outputs"][0]["outputs"][0]['results']['message']['data']['text'].replace("```json", "").replace("```", "")
+            self.podcast = json.loads(output)
             print("Getting podcast title")
             self.title = self.podcast["podcast"]["title"]
             print(f"{self.title}")
@@ -63,6 +64,8 @@ class PodcastTalk:
             return transcript_output
         except Exception as e:
             print(f"Error generating podcast: {e}")
+            with open('test.json', 'w') as f:
+                f.write(json.dumps(transcript_output, indent=4))
             end_time = time.time()
             print(f"Exception caught. Time taken to generate podcast: {end_time - start_time} seconds")
             return None
