@@ -1,12 +1,18 @@
 {
-  "id": "c3f30651-6c35-46ac-98b3-8ade04a4178d",
+  "id": "619d49f0-c8f4-4c35-a402-ed955c5cee60",
   "data": {
     "nodes": [
       {
+        "id": "Agent-Jra0l",
+        "type": "genericNode",
+        "position": {
+          "x": 893.4263144197934,
+          "y": 197.5896929504364
+        },
         "data": {
           "description": "Define the agent's instructions, then enter a task to complete using tools.",
           "display_name": "Agent",
-          "id": "Agent-9wG3r",
+          "id": "Agent-Jra0l",
           "node": {
             "base_classes": [
               "Message"
@@ -504,7 +510,7 @@
                 "trace_as_input": true,
                 "trace_as_metadata": true,
                 "type": "str",
-                "value": "You are a podcast writer focused on creating a transcript for 2 hosts, with banter in between. The transcript should be written based on the input {input}, mood {mood} and the political leaning {slider}. Grab all the information you can through https://saurav.tech/NewsAPI/everything/cnn.json, https://saurav.tech/NewsAPI/everything/fox-news.json, and Reddit. Return the output in a JSON format with only the conversation. The JSON format should be: { \"podcast\": {\"title\": <title>, \"description\": <description>, \"transcript\": [{\"host\": <host>, \"content\": <content>]"
+                "value": "You are a podcast writer focused on creating a transcript for 2 hosts, with banter in between. The transcript should be written based on the JSON data and mood. Grab all the information you can through https://saurav.tech/NewsAPI/everything/cnn.json, https://saurav.tech/NewsAPI/everything/fox-news.json, and Reddit. Return the output in a JSON format with only the conversation. The JSON format should be: { \"podcast\": {\"title\": <title>, \"description\": <description>, \"transcript\": [{\"host\": <host>, \"content\": <content>]"
               },
               "temperature": {
                 "_input_type": "FloatInput",
@@ -520,7 +526,7 @@
                 "title_case": false,
                 "trace_as_metadata": true,
                 "type": "float",
-                "value": 0.2
+                "value": 0.9
               },
               "template": {
                 "_input_type": "MultilineInput",
@@ -603,22 +609,21 @@
           },
           "type": "Agent"
         },
-        "dragging": false,
-        "id": "Agent-9wG3r",
-        "measured": {
-          "height": 707,
-          "width": 320
-        },
-        "position": {
-          "x": 1652.2479633316434,
-          "y": 297.9085084144251
-        },
         "selected": true,
-        "type": "genericNode"
+        "measured": {
+          "width": 320,
+          "height": 707
+        }
       },
       {
+        "id": "ChatInput-Pebjq",
+        "type": "genericNode",
+        "position": {
+          "x": 14.33759005162861,
+          "y": 525.2044939895861
+        },
         "data": {
-          "id": "ChatInput-dOvgG",
+          "id": "ChatInput-Pebjq",
           "node": {
             "base_classes": [
               "Message"
@@ -788,7 +793,7 @@
                 "trace_as_input": true,
                 "trace_as_metadata": true,
                 "type": "str",
-                "value": "rightwing-happy-meme"
+                "value": ""
               },
               "sender": {
                 "_input_type": "DropdownInput",
@@ -898,24 +903,24 @@
           },
           "type": "ChatInput"
         },
-        "dragging": false,
-        "id": "ChatInput-dOvgG",
-        "measured": {
-          "height": 230,
-          "width": 320
-        },
-        "position": {
-          "x": 773.82164891185,
-          "y": 601.5293973772549
-        },
         "selected": false,
-        "type": "genericNode"
+        "measured": {
+          "width": 320,
+          "height": 230
+        },
+        "dragging": false
       },
       {
+        "id": "ChatOutput-G8SdR",
+        "type": "genericNode",
+        "position": {
+          "x": 1348.9270743254497,
+          "y": 547.2407765691272
+        },
         "data": {
           "description": "Display a chat message in the Playground.",
           "display_name": "Chat Output",
-          "id": "ChatOutput-2Kdns",
+          "id": "ChatOutput-G8SdR",
           "node": {
             "base_classes": [
               "Message"
@@ -1195,24 +1200,23 @@
           },
           "type": "ChatOutput"
         },
-        "id": "ChatOutput-2Kdns",
-        "measured": {
-          "height": 230,
-          "width": 320
-        },
-        "position": {
-          "x": 2107.7487232372996,
-          "y": 647.5595920331159
-        },
         "selected": false,
-        "type": "genericNode",
-        "dragging": false
+        "measured": {
+          "width": 320,
+          "height": 230
+        }
       },
       {
+        "id": "URL-RKQMN",
+        "type": "genericNode",
+        "position": {
+          "x": 301.49577105345645,
+          "y": 45
+        },
         "data": {
           "description": "Load and retrive data from specified URLs.",
           "display_name": "URL",
-          "id": "URL-GfH08",
+          "id": "URL-RKQMN",
           "node": {
             "base_classes": [
               "Data",
@@ -1238,17 +1242,19 @@
             "output_types": [],
             "outputs": [
               {
-                "cache": true,
-                "display_name": "Toolset",
-                "hidden": null,
-                "method": "to_toolkit",
-                "name": "component_as_tool",
-                "required_inputs": null,
-                "selected": "Tool",
                 "types": [
                   "Tool"
                 ],
-                "value": "__UNDEFINED__"
+                "selected": "Tool",
+                "name": "component_as_tool",
+                "hidden": null,
+                "display_name": "Toolset",
+                "method": "to_toolkit",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "required_inputs": null,
+                "allows_loop": false,
+                "tool_mode": true
               }
             ],
             "pinned": false,
@@ -1294,80 +1300,78 @@
                 "value": "Text"
               },
               "tools_metadata": {
-                "_input_type": "TableInput",
-                "advanced": false,
-                "display_name": "Edit tools",
-                "dynamic": false,
-                "info": "",
+                "tool_mode": false,
                 "is_list": true,
                 "list_add_label": "Add More",
-                "name": "tools_metadata",
-                "placeholder": "",
-                "real_time_refresh": true,
-                "required": false,
-                "show": true,
+                "table_schema": {
+                  "columns": [
+                    {
+                      "name": "name",
+                      "display_name": "Tool Name",
+                      "sortable": false,
+                      "filterable": false,
+                      "formatter": "text",
+                      "type": "str",
+                      "description": "Specify the name of the tool.",
+                      "default": "None",
+                      "disable_edit": false,
+                      "edit_mode": "inline",
+                      "hidden": false
+                    },
+                    {
+                      "name": "description",
+                      "display_name": "Tool Description",
+                      "sortable": false,
+                      "filterable": false,
+                      "formatter": "text",
+                      "type": "str",
+                      "description": "Describe the purpose of the tool.",
+                      "default": "None",
+                      "disable_edit": false,
+                      "edit_mode": "popover",
+                      "hidden": false
+                    },
+                    {
+                      "name": "tags",
+                      "display_name": "Tool Identifiers",
+                      "sortable": false,
+                      "filterable": false,
+                      "formatter": "text",
+                      "type": "str",
+                      "description": "The default identifiers for the tools and cannot be changed.",
+                      "default": "None",
+                      "disable_edit": true,
+                      "edit_mode": "inline",
+                      "hidden": true
+                    }
+                  ]
+                },
+                "trigger_text": "",
+                "trigger_icon": "Hammer",
                 "table_icon": "Hammer",
                 "table_options": {
                   "block_add": true,
                   "block_delete": true,
                   "block_edit": true,
+                  "block_sort": true,
                   "block_filter": true,
                   "block_hide": true,
                   "block_select": true,
-                  "block_sort": true,
-                  "description": "Modify tool names and descriptions to help agents understand when to use each tool.",
+                  "hide_options": true,
                   "field_parsers": {
-                    "commands": "commands",
                     "name": [
                       "snake_case",
                       "no_blank"
-                    ]
+                    ],
+                    "commands": "commands"
                   },
-                  "hide_options": true
+                  "description": "Modify tool names and descriptions to help agents understand when to use each tool."
                 },
-                "table_schema": {
-                  "columns": [
-                    {
-                      "description": "Specify the name of the tool.",
-                      "disable_edit": false,
-                      "display_name": "Tool Name",
-                      "edit_mode": "inline",
-                      "filterable": false,
-                      "formatter": "text",
-                      "name": "name",
-                      "sortable": false,
-                      "type": "text"
-                    },
-                    {
-                      "description": "Describe the purpose of the tool.",
-                      "disable_edit": false,
-                      "display_name": "Tool Description",
-                      "edit_mode": "popover",
-                      "filterable": false,
-                      "formatter": "text",
-                      "name": "description",
-                      "sortable": false,
-                      "type": "text"
-                    },
-                    {
-                      "description": "The default identifiers for the tools and cannot be changed.",
-                      "disable_edit": true,
-                      "display_name": "Tool Identifiers",
-                      "edit_mode": "inline",
-                      "filterable": false,
-                      "formatter": "text",
-                      "name": "tags",
-                      "sortable": false,
-                      "type": "text"
-                    }
-                  ]
-                },
-                "title_case": false,
-                "tool_mode": false,
                 "trace_as_metadata": true,
-                "trigger_icon": "Hammer",
-                "trigger_text": "",
-                "type": "table",
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "tools_metadata",
                 "value": [
                   {
                     "description": "fetch_content() - Load and retrive data from specified URLs.",
@@ -1390,7 +1394,15 @@
                       "URL-as_dataframe"
                     ]
                   }
-                ]
+                ],
+                "display_name": "Edit tools",
+                "advanced": false,
+                "dynamic": false,
+                "info": "",
+                "real_time_refresh": true,
+                "title_case": false,
+                "type": "table",
+                "_input_type": "TableInput"
               },
               "urls": {
                 "_input_type": "MessageTextInput",
@@ -1421,22 +1433,21 @@
           },
           "type": "URL"
         },
-        "dragging": false,
-        "id": "URL-GfH08",
-        "measured": {
-          "height": 405,
-          "width": 320
-        },
-        "position": {
-          "x": 1060.3174199653065,
-          "y": 145.31881546398873
-        },
         "selected": false,
-        "type": "genericNode"
+        "measured": {
+          "width": 320,
+          "height": 405
+        }
       },
       {
+        "id": "note-i2iaK",
+        "type": "noteNode",
+        "position": {
+          "x": 889.8660255977123,
+          "y": 153.54584635166097
+        },
         "data": {
-          "id": "note-Hs9jL",
+          "id": "note-i2iaK",
           "node": {
             "description": "### 💡 Add your OpenAI API key here👇",
             "display_name": "",
@@ -1447,27 +1458,24 @@
           },
           "type": "note"
         },
-        "id": "note-Hs9jL",
-        "measured": {
-          "height": 324,
-          "width": 324
-        },
-        "position": {
-          "x": 1648.6876745095624,
-          "y": 253.8646618156497
-        },
         "selected": false,
-        "type": "noteNode"
+        "measured": {
+          "width": 324,
+          "height": 324
+        }
       }
     ],
     "edges": [
       {
-        "animated": false,
-        "className": "",
+        "source": "ChatInput-Pebjq",
+        "target": "Agent-Jra0l",
+        "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-Pebjqœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œAgent-Jra0lœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
+        "id": "reactflow__edge-ChatInput-Pebjq{œdataTypeœ:œChatInputœ,œidœ:œChatInput-Pebjqœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-Agent-Jra0l{œfieldNameœ:œinput_valueœ,œidœ:œAgent-Jra0lœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
         "data": {
           "sourceHandle": {
             "dataType": "ChatInput",
-            "id": "ChatInput-dOvgG",
+            "id": "ChatInput-Pebjq",
             "name": "message",
             "output_types": [
               "Message"
@@ -1475,27 +1483,27 @@
           },
           "targetHandle": {
             "fieldName": "input_value",
-            "id": "Agent-9wG3r",
+            "id": "Agent-Jra0l",
             "inputTypes": [
               "Message"
             ],
             "type": "str"
           }
         },
-        "id": "reactflow__edge-ChatInput-dOvgG{œdataTypeœ:œChatInputœ,œidœ:œChatInput-dOvgGœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-Agent-9wG3r{œfieldNameœ:œinput_valueœ,œidœ:œAgent-9wG3rœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
         "selected": false,
-        "source": "ChatInput-dOvgG",
-        "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-dOvgGœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
-        "target": "Agent-9wG3r",
-        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œAgent-9wG3rœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
+        "className": "",
+        "animated": false
       },
       {
-        "animated": false,
-        "className": "",
+        "source": "Agent-Jra0l",
+        "target": "ChatOutput-G8SdR",
+        "sourceHandle": "{œdataTypeœ:œAgentœ,œidœ:œAgent-Jra0lœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-G8SdRœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}",
+        "id": "reactflow__edge-Agent-Jra0l{œdataTypeœ:œAgentœ,œidœ:œAgent-Jra0lœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-G8SdR{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-G8SdRœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}",
         "data": {
           "sourceHandle": {
             "dataType": "Agent",
-            "id": "Agent-9wG3r",
+            "id": "Agent-Jra0l",
             "name": "response",
             "output_types": [
               "Message"
@@ -1503,7 +1511,7 @@
           },
           "targetHandle": {
             "fieldName": "input_value",
-            "id": "ChatOutput-2Kdns",
+            "id": "ChatOutput-G8SdR",
             "inputTypes": [
               "Data",
               "DataFrame",
@@ -1512,19 +1520,20 @@
             "type": "str"
           }
         },
-        "id": "reactflow__edge-Agent-9wG3r{œdataTypeœ:œAgentœ,œidœ:œAgent-9wG3rœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-2Kdns{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-2Kdnsœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}",
         "selected": false,
-        "source": "Agent-9wG3r",
-        "sourceHandle": "{œdataTypeœ:œAgentœ,œidœ:œAgent-9wG3rœ,œnameœ:œresponseœ,œoutput_typesœ:[œMessageœ]}",
-        "target": "ChatOutput-2Kdns",
-        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-2Kdnsœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}"
+        "className": "",
+        "animated": false
       },
       {
-        "className": "",
+        "source": "URL-RKQMN",
+        "target": "Agent-Jra0l",
+        "sourceHandle": "{œdataTypeœ:œURLœ,œidœ:œURL-RKQMNœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
+        "targetHandle": "{œfieldNameœ:œtoolsœ,œidœ:œAgent-Jra0lœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-URL-RKQMN{œdataTypeœ:œURLœ,œidœ:œURL-RKQMNœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-Jra0l{œfieldNameœ:œtoolsœ,œidœ:œAgent-Jra0lœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
         "data": {
           "sourceHandle": {
             "dataType": "URL",
-            "id": "URL-GfH08",
+            "id": "URL-RKQMN",
             "name": "component_as_tool",
             "output_types": [
               "Tool"
@@ -1532,29 +1541,26 @@
           },
           "targetHandle": {
             "fieldName": "tools",
-            "id": "Agent-9wG3r",
+            "id": "Agent-Jra0l",
             "inputTypes": [
               "Tool"
             ],
             "type": "other"
           }
         },
-        "id": "reactflow__edge-URL-GfH08{œdataTypeœ:œURLœ,œidœ:œURL-GfH08œ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-9wG3r{œfieldNameœ:œtoolsœ,œidœ:œAgent-9wG3rœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
-        "source": "URL-GfH08",
-        "sourceHandle": "{œdataTypeœ:œURLœ,œidœ:œURL-GfH08œ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
-        "target": "Agent-9wG3r",
-        "targetHandle": "{œfieldNameœ:œtoolsœ,œidœ:œAgent-9wG3rœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "className": "",
         "animated": false
       }
     ],
     "viewport": {
-      "x": -156.44770846575352,
-      "y": 106.01371555427986,
-      "zoom": 0.40548873892079956
+      "x": 29.048697780263865,
+      "y": 31.198484844290476,
+      "zoom": 0.6243240452198153
     }
   },
-  "description": "A simple but powerful starter agent.",
-  "name": "Podcast Writer",
+  "description": "Uncover Business Opportunities with NLP.",
+  "name": "podcast_writer",
   "last_tested_version": "1.2.0",
   "endpoint_name": "hotpot",
   "is_component": false

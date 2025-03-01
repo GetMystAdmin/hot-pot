@@ -44,6 +44,7 @@ class PodcastTalk:
         print(self.hosts)
 
     def generate_podcast(self,input):
+        self.personality_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personality_traits.json')
         try:
             print("Attempting to generate podcast...")
             start_time = time.time()
@@ -79,7 +80,7 @@ class PodcastTalk:
                 sound = AudioSegment.from_file(speech_file,format="mp3")
             else:
                 sound += AudioSegment.from_file(speech_file,format="mp3")
-        sound.export(os.path.join(PODCASTS_DIR,f"Echo Chamber {random.randint(0,999)}.mp3"), format="mp3")
+        sound.export(os.path.join(PODCASTS_DIR,f"{self.title} {random.randint(0,999)}.mp3"), format="mp3")
 
     def generate_talk(self):
         count = 0

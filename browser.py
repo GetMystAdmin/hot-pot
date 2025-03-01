@@ -22,6 +22,7 @@ from generate_code import get_code_from_screenshot
 import asyncio
 import websockets
 import qasync
+from podcast_talk import PodcastTalk
 
 # Create a constant for the podcasts directory
 PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
@@ -920,6 +921,17 @@ class Browser(QMainWindow):
             self.show_notification("Success", "Personality traits saved successfully.")
         except Exception as e:
             self.show_notification("Error", f"Failed to save personality traits: {str(e)}", is_error=True)
+        self.reload_podcast()
+
+    def reload_podcast(self):
+        """Reload the PodcastPlayer window."""
+        podcast_talk = PodcastTalk()
+        podcast_talk.generate_podcast(json.dumps(self.get_personality_traits_text()))
+        podcast_talk.merge_clips(podcast_talk.generate_talk())
+        if hasattr(self, 'podcast_player') and self.podcast_player.isVisible():
+            self.podcast_player.close()
+            self.podcast_player = PodcastPlayer(self.podcast_player.podcast_name)
+            self.podcast_player.show()
     
     def load_personality_traits(self):
         """Load personality traits from JSON file if it exists."""
@@ -957,7 +969,19 @@ def main():
     palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
     app.setPalette(palette)
     podcast_talk = PodcastTalk()
-    podcast_talk.generate_podcast("neutral-sad-talks")
+    # Get personality traits
+    traits = {
+        "Happiness": random.randint(1, 10),
+        "Excitement": random.randint(1, 10),
+        "Sarcasm": random.randint(1, 10),
+        "Professionalism": random.randint(1, 10),
+        "Humor": random.randint(1, 10),
+        "Creativity": random.randint(1, 10),
+        "Formality": random.randint(1, 10)
+    }
+    
+    # Generate a random talk based on personality traits
+    podcast_talk.generate_podcast(json.dumps(traits))
     podcast_talk.merge_clips(podcast_talk.generate_talk())
     
     browser = Browser()
