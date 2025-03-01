@@ -50,10 +50,8 @@ class PodcastTalk:
             transcript_output = langflow_api.run_flow(message=input)
             end_time = time.time()
             print(f"Time taken to generate podcast: {end_time - start_time} seconds")
-            # Parse transcript
-            # print(transcript_output)
             print("Processing podcast metadata")
-            self.podcast = json.loads(transcript_output["outputs"][0]["text"])
+            self.podcast = json.loads(transcript_output["outputs"][0]["outputs"][0]['results']['message']['data']['text'])
             print("Getting podcast title")
             self.title = self.podcast["podcast"]["title"]
             print(f"{self.title}")
@@ -64,9 +62,9 @@ class PodcastTalk:
             self.transcript = self.podcast["podcast"]["transcript"]
             return transcript_output
         except Exception as e:
-            print(f"Error generating podcast: {e.message}, {e}")
+            print(f"Error generating podcast: {e}")
             end_time = time.time()
-            print(f"Time taken to generate podcast: {end_time - start_time} seconds")
+            print(f"Exception caught. Time taken to generate podcast: {end_time - start_time} seconds")
             return None
 
     def merge_clips(self,speech_files):
