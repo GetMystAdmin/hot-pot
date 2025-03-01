@@ -13,7 +13,8 @@ import time
 
 # Load environment variables from a .env file
 load_dotenv(dotenv_path=Path(__file__).parent / "ASTRA_OPENAI.env")
-
+PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
+os.makedirs(PODCASTS_DIR, exist_ok=True)
 
 class PodcastTalk:
     def __init__(self,file='sample_podcast.json'):
@@ -22,6 +23,7 @@ class PodcastTalk:
         self.title = self.podcast["podcast"]["title"]
         self.transcript = self.podcast["podcast"]["transcript"]
         self.client = OpenAI(api_key=os.getenv("ASTRA_OPENAI"))
+        self.audio_array = None
 
     def load_podcast(self, file):
         try:
@@ -77,7 +79,7 @@ class PodcastTalk:
                 sound = AudioSegment.from_file(speech_file,format="mp3")
             else:
                 sound += AudioSegment.from_file(speech_file,format="mp3")
-        sound.export("podcast.mp3", format="mp3")
+        sound.export(os.path.join(PODCASTS_DIR,f"Echo Chamber {random.randint(0,999)}.mp3"), format="mp3")
 
     def generate_talk(self):
         count = 0
@@ -114,8 +116,8 @@ class PodcastTalk:
         except Exception as e:
             print(f"Error during streaming or playback: {e}")
 
-
-podcast = PodcastTalk()
-output = podcast.generate_podcast("rightwing-happy-memes")
-if output:
-    podcast.stream_podcast()
+if __name__ == "__main__":
+    podcast = PodcastTalk()
+    output = podcast.generate_podcast("rightwing-happy-memes")
+    if output:
+        podcast.stream_podcast()

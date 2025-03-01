@@ -784,7 +784,7 @@ class Browser(QMainWindow):
 
     def get_available_podcasts(self):
         # Default podcasts if no MP3s found
-        default_podcasts = ["Tech Talk Daily", "Code Chronicles", "Dev Discussion", "Python Pioneers"]
+        default_podcasts = ["Echo Chamber Podcast"]
         
         # Get actual MP3 files from the podcasts directory
         try:
@@ -956,6 +956,9 @@ def main():
     palette.setColor(QPalette.ColorRole.Base, QColor(42, 42, 42))
     palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
     app.setPalette(palette)
+    podcast_talk = PodcastTalk()
+    podcast_talk.generate_podcast("neutral-sad-talks")
+    podcast_talk.merge_clips(podcast_talk.generate_talk())
     
     browser = Browser()
     browser.show()
