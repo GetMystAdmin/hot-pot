@@ -77,7 +77,7 @@ async def get_code_from_screenshot(screenshot_path: str, websocket_url: str = "w
 async def main():
     #code = await get_code_from_screenshot("test-frontend.JPG")
     code = await get_code_from_screenshot("example-screen.png")
-    with open("example.html", "w") as f:
+    with open("example.html", "w", encoding="utf-8") as f:
         f.write(code)
     print("Generated code saved to example.html")
 
