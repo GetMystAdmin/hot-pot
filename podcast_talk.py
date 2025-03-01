@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from pydub import AudioSegment
 import langflow_api
 import numpy as np
+import time
 
 # Load environment variables from a .env file
 load_dotenv(dotenv_path=Path(__file__).parent / "ASTRA_OPENAI.env")
@@ -18,6 +19,7 @@ class PodcastTalk:
     def __init__(self,file='sample_podcast.json'):
         self.podcast = self.load_podcast(file)
         self.hosts = {}
+        self.title = self.podcast["podcast"]["title"]
         self.transcript = self.podcast["podcast"]["transcript"]
         self.client = OpenAI(api_key=os.getenv("ASTRA_OPENAI"))
 
@@ -37,19 +39,35 @@ class PodcastTalk:
                 randomizer = random.randint(len(voices))
                 self.hosts[content["host"]] = voices[randomizer]
                 voices.remove(voices[randomizer])
+        print(self.hosts)
 
     def generate_podcast(self,input):
         try:
             print("Attempting to generate podcast...")
+            start_time = time.time()
+            # Your code here
             print("Using langflow")
             transcript_output = langflow_api.run_flow(message=input)
+            end_time = time.time()
+            print(f"Time taken to generate podcast: {end_time - start_time} seconds")
             # Parse transcript
             # print(transcript_output)
-            # self.podcast = json.load(transcript_output["outputs"]["text"])
-            # self.transcript = self.podcast["podcast"]["transcript"]
+            print("Processing podcast metadata")
+            self.podcast = json.loads(transcript_output["outputs"][0]["text"])
+            print("Getting podcast title")
+            self.title = self.podcast["podcast"]["title"]
+            print(f"{self.title}")
+            print("Generating hosts")
+            self.generate_hosts(self.podcast["podcast"]["transcript"])
+            print(f"{self.hosts}")
+            print("Getting transcript")
+            self.transcript = self.podcast["podcast"]["transcript"]
             return transcript_output
         except Exception as e:
-            print(f"Error generating podcast: {e}")
+            print(f"Error generating podcast: {e.message}, {e}")
+            end_time = time.time()
+            print(f"Time taken to generate podcast: {end_time - start_time} seconds")
+            return None
 
     def merge_clips(self,speech_files):
         sound = None
@@ -79,6 +97,8 @@ class PodcastTalk:
     def stream_podcast(self):
         """Streams text-to-speech audio and plays it in real-time using sounddevice."""
         try:
+            print("Running stream")
+            print(self.transcript)
             for content in self.transcript:
                 with self.client.audio.speech.with_streaming_response.create(
                     model="tts-1",
@@ -95,8 +115,6 @@ class PodcastTalk:
 
 
 podcast = PodcastTalk()
-<<<<<<< HEAD
-print(podcast.generate_podcast("rightwing-happy-memes"))
-=======
-print(podcast.generate_podcast("leftwing-sad-sports"))
->>>>>>> bc67803 (Langflow api call and podcast generator)
+output = podcast.generate_podcast("rightwing-happy-memes")
+if output:
+    podcast.stream_podcast()
