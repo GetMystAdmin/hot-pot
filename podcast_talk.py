@@ -1,6 +1,7 @@
 from pathlib import Path
 from openai import OpenAI
 import os
+import random
 import json
 import sounddevice as sd
 from pprint import pprint
@@ -16,10 +17,7 @@ load_dotenv(dotenv_path=Path(__file__).parent / "ASTRA_OPENAI.env")
 class PodcastTalk:
     def __init__(self,file='sample_podcast.json'):
         self.podcast = self.load_podcast(file)
-        self.hosts = {
-            "Serious Host": "alloy",
-            "Funny Host": "ash"
-        }
+        self.hosts = {}
         self.transcript = self.podcast["podcast"]["transcript"]
         self.client = OpenAI(api_key=os.getenv("ASTRA_OPENAI"))
 
@@ -31,6 +29,14 @@ class PodcastTalk:
         except Exception as e:
             print(f"Error loading podcast file: {e}")
             return None
+
+    def generate_hosts(self,transcript):
+        voices = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
+        for content in transcript:
+            if content["host"] not in self.hosts:
+                randomizer = random.randint(len(voices))
+                self.hosts[content["host"]] = voices[randomizer]
+                voices.remove(voices[randomizer])
 
     def generate_podcast(self,input):
         try:
@@ -89,4 +95,8 @@ class PodcastTalk:
 
 
 podcast = PodcastTalk()
+<<<<<<< HEAD
 print(podcast.generate_podcast("rightwing-happy-memes"))
+=======
+print(podcast.generate_podcast("leftwing-sad-sports"))
+>>>>>>> bc67803 (Langflow api call and podcast generator)
