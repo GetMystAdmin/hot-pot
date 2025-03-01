@@ -95,15 +95,15 @@ def build_html_from_posts(posts: str, template: Optional[str] = None) -> str:
         str: Generated HTML content
     """
     tweaks = {
-        "TextInput-8fyZk": {"input_value": posts},
-        "TextInput-qQTzX": {"input_value": template} if template else {},
+        "TextInput-8fyZk": {"input_value": template} if template else {},
+        "TextInput-qQTzX": {"input_value": posts} if posts else {},
         "ChatInput-tbWNG": {},
         "OpenAIModel-4zPqb": {},
         "ChatOutput-nSI1W": {},
         "CombineText-P2Nrl": {}
     }
     
-    message = "Convert these social media posts into a beautiful HTML page with modern styling"
+    message = "You are a good html programmer. Given a piece of template, and the 3 social media posts. Replicate the html code and give it back. Only give html code and nothing else. Do not give explaination of the code. Also, if there are names, randomize the names to make it more personal."
     response = run_flow(
         message=message,
         endpoint="build-html",

@@ -1,10 +1,10 @@
 import sys
-from PyQt6.QtCore import QUrl, Qt, QTimer
+from PyQt6.QtCore import QUrl, Qt, QTimer, QSize
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                            QVBoxLayout, QLineEdit, QHBoxLayout,
                            QPushButton, QFrame, QLabel, QListWidget)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtGui import QColor, QPalette, QFont, QIcon
+from PyQt6.QtGui import QColor, QPalette, QFont, QIcon, QPainter
 from urllib.parse import urlparse
 from astradb_access import get_template_by_url
 import pygame
@@ -14,7 +14,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import random
 import os
 from pathlib import Path
-#from PyQt6.QtWebEngineCore import QWebEngineHttpHandler
+from extract_template import generate_personalized_content
+from PyQt6.QtCore import QPropertyAnimation, QPoint, QEasingCurve
 
 # Create a constant for the podcasts directory
 PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
@@ -169,6 +170,69 @@ class PodcastPlayer(QMainWindow):
         if self.is_playing:
             self.current_frame = (self.current_frame + 10) % 1000
             self.plot_waveform()
+
+class LoadingOverlay(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(200, 200)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Create loading indicator
+        self.loading_label = QLabel("⭐", self)
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loading_label.setStyleSheet("""
+            QLabel {
+                color: #FFFFFF;
+                font-size: 48px;
+                background: transparent;
+            }
+        """)
+        self.loading_label.setFixedSize(50, 50)
+        
+        # Create loading text
+        self.text_label = QLabel("Loading...", self)
+        self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_label.setStyleSheet("""
+            QLabel {
+                color: #FFFFFF;
+                font-size: 16px;
+                background: transparent;
+            }
+        """)
+        self.text_label.move(75, 120)
+        
+        # Setup rotation animation
+        self.animation = QPropertyAnimation(self.loading_label, b"pos")
+        self.animation.setDuration(2000)
+        self.animation.setStartValue(QPoint(75, 50))
+        self.animation.setEndValue(QPoint(75, 50))
+        self.animation.setLoopCount(-1)  # Infinite loop
+        
+        # Create circular motion
+        steps = 60
+        for i in range(steps + 1):
+            angle = (i / steps) * 2 * 3.14159
+            radius = 30
+            x = 75 + radius * np.cos(angle)
+            y = 50 + radius * np.sin(angle)
+            self.animation.setKeyValueAt(i/steps, QPoint(int(x), int(y)))
+        
+        self.animation.setEasingCurve(QEasingCurve.Type.Linear)
+        
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.animation.start()
+        
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.animation.stop()
+        
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setBrush(QColor(0, 0, 0, 180))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawRoundedRect(self.rect(), 10, 10)
 
 class Browser(QMainWindow):
     def __init__(self):
@@ -330,6 +394,20 @@ class Browser(QMainWindow):
         self.web_view.loadStarted.connect(lambda: self.refresh_button.setEnabled(False))
         self.web_view.loadFinished.connect(lambda: self.refresh_button.setEnabled(True))
 
+        # Add loading overlay
+        self.loading_overlay = LoadingOverlay(self.web_view)
+        self.loading_overlay.hide()
+
+    def showLoading(self):
+        self.loading_overlay.move(
+            (self.web_view.width() - self.loading_overlay.width()) // 2,
+            (self.web_view.height() - self.loading_overlay.height()) // 2
+        )
+        self.loading_overlay.show()
+        
+    def hideLoading(self):
+        self.loading_overlay.hide()
+
     def navigate_to_url(self):
         url = self.url_bar.text()
         if not url.startswith(('http://', 'https://')):
@@ -340,22 +418,59 @@ class Browser(QMainWindow):
         domain = parsed_url.netloc
         if domain.startswith('www.'):
             domain = domain[4:]
-
+            
+        # Show loading overlay
+        self.showLoading()
+        
         # Check if domain exists in AstraDB
+        cached_data = None
         for i in range(0,3):
             try:
                 cached_data = get_template_by_url(domain)
+                break
             except:
                 continue
         
         if cached_data and 'template' in cached_data:
-            # If template exists, load it directly into the web view
-            self.web_view.setHtml(cached_data['template'])
+            # Save template to a temporary file
+            temp_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_template.html')
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                f.write(cached_data['template'])
+            
+            # Hardcoded personality traits for now
+            personality_traits = """Happiness: 8/10
+            Excitement: 7/10
+            Sarcasm: 3/10
+            Professionalism: 9/10
+            Humor: 6/10"""
+            
+            # Generate personalized content
+            generated_file = generate_personalized_content(temp_file, personality_traits)
+            
+            if generated_file:
+                # Read the generated file and display it
+                with open(generated_file, 'r', encoding='utf-8') as f:
+                    generated_html = f.read()
+                self.web_view.setHtml(generated_html)
+                
+                # Clean up temporary files
+                try:
+                    os.remove(temp_file)
+                    os.remove(generated_file)
+                except:
+                    pass
+            else:
+                # Fallback to original template if generation fails
+                self.web_view.setHtml(cached_data['template'])
+            
             self.url_bar.setText(url)
             self.url_bar.setCursorPosition(0)
         else:
             # If no template exists, load the actual webpage
             self.web_view.setUrl(QUrl(url))
+            
+        # Hide loading overlay
+        self.hideLoading()
 
     def update_url_bar(self, url):
         self.url_bar.setText(url.toString())

@@ -89,6 +89,49 @@ def replace_template_section(original_file_path, new_content, output_file_path=N
     except Exception as e:
         return False, f"Error while replacing template: {str(e)}"
 
+def generate_personalized_content(html_file_path, personality_traits):
+    """
+    Generate personalized content based on news articles and personality traits.
+    
+    Args:
+        html_file_path (str): Path to the HTML template file
+        personality_traits (str): String containing personality traits
+        
+    Returns:
+        str: Path to the generated HTML file, or None if an error occurred
+    """
+    # Extract template from the HTML file
+    template = extract_template_section(html_file_path)
+    if not template:
+        print("No template section found or an error occurred")
+        return None
+        
+    # Get news articles
+    news_api = NewsAPI()
+    entertainment_articles = news_api.get_articles('entertainment')
+    general_articles = news_api.get_articles('general')
+    
+    # Format news data
+    news_data = ""
+    for article in entertainment_articles + general_articles:
+        news_data += f"\n{article['title']}\n"
+        news_data += f"Source: {article['source']['name']}\n"
+        news_data += f"Description: {article['description']}\n"
+
+    # Generate posts and build HTML
+    posts = generate_social_posts(news_data, personality_traits)
+    html_content = build_html_from_posts(posts, template)
+
+    # Replace template section and save to new file
+    success, result = replace_template_section(html_file_path, html_content)
+    
+    if success:
+        print(f"Generated HTML saved to: {result}")
+        return result
+    else:
+        print(f"Error: {result}")
+        return None
+
 # Example usage:
 if __name__ == "__main__":
     import sys
@@ -101,41 +144,17 @@ if __name__ == "__main__":
         file_path = "example-fixed.html"
     
     print(f"Processing HTML file: {file_path}")
-    template = extract_template_section(file_path)
-
-    news_api = NewsAPI()
-    entertainment_articles = news_api.get_articles('entertainment')
-    general_articles = news_api.get_articles('general')
-    # get personality data
-    # Generate personality traits
+    
+    # Example personality traits
     personality_traits = """Happiness: 7/10
-        Excitement: 4/10
-        Sarcasm: 8/10
-        Professionalism: 6/10
-        Humor: 5/10"""
-
-    # Format news data
-    news_data = ""
-    for article in entertainment_articles + general_articles:
-        news_data += f"\n{article['title']}\n"
-        news_data += f"Source: {article['source']['name']}\n"
-        news_data += f"Description: {article['description']}\n"
-
-    posts = generate_social_posts(news_data, personality_traits)
-    html_content = build_html_from_posts(posts, template)
-
-    # Replace template section and save to new file
-    success, result = replace_template_section(file_path, html_content)
-    if success:
-        print(f"\nGenerated HTML saved to: {result}")
-    else:
-        print(f"\nError: {result}")
-
-    if template:
-        print("\nExtracted template section:")
-        print(template)
-    else:
-        print("\nNo template section found or an error occurred")
+    Excitement: 4/10
+    Sarcasm: 8/10
+    Professionalism: 6/10
+    Humor: 5/10"""
+    
+    generated_file = generate_personalized_content(file_path, personality_traits)
+    
+    if not generated_file:
         print("Note: Make sure your HTML file contains the following markers:")
         print("<!-- Template section start -->")
         print("<!-- Template section end -->") 
