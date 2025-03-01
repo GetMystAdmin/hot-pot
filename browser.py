@@ -5,6 +5,9 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                            QPushButton, QFrame)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QColor, QPalette, QFont, QIcon
+from urllib.parse import urlparse
+from astradb_access import get_template_by_url
+#from PyQt6.QtWebEngineCore import QWebEngineHttpHandler
 
 class ModernUrlBar(QLineEdit):
     def __init__(self):
@@ -128,7 +131,28 @@ class Browser(QMainWindow):
         url = self.url_bar.text()
         if not url.startswith(('http://', 'https://')):
             url = 'https://' + url
-        self.web_view.setUrl(QUrl(url))
+
+        # Extract domain from URL
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        if domain.startswith('www.'):
+            domain = domain[4:]
+
+        # Check if domain exists in AstraDB
+        for i in range(0,3):
+            try:
+                cached_data = get_template_by_url(domain)
+            except:
+                continue
+        
+        if cached_data and 'template' in cached_data:
+            # If template exists, load it directly into the web view
+            self.web_view.setHtml(cached_data['template'])
+            self.url_bar.setText(url)
+            self.url_bar.setCursorPosition(0)
+        else:
+            # If no template exists, load the actual webpage
+            self.web_view.setUrl(QUrl(url))
 
     def update_url_bar(self, url):
         self.url_bar.setText(url.toString())
