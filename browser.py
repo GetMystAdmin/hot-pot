@@ -928,6 +928,10 @@ class Browser(QMainWindow):
         podcast_talk = PodcastTalk()
         podcast_talk.generate_podcast(json.dumps(self.get_personality_traits_text()))
         podcast_talk.merge_clips(podcast_talk.generate_talk())
+        # Reload the list of available podcasts
+        self.podcasts_list.clear()
+        available_podcasts = self.get_available_podcasts()
+        self.podcasts_list.addItems(available_podcasts)
         if hasattr(self, 'podcast_player') and self.podcast_player.isVisible():
             self.podcast_player.close()
             self.podcast_player = PodcastPlayer(self.podcast_player.podcast_name)
