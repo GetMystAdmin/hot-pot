@@ -1,8 +1,8 @@
 PyQt6==6.8.1
 PyQt6-WebEngine==6.8.0
 chardet==5.2.0
-beautifulsoup4==4.12.2
-requests==2.31.0
+beautifulsoup4==4.12.3
+requests==2.32.3
 pygame==2.6.1
 numpy==1.26.4
 matplotlib==3.9.2
