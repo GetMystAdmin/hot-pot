@@ -1,3 +1,6 @@
+from agents_stuff import build_html_from_posts, generate_social_posts
+from gather_news import NewsAPI
+
 def extract_template_section(html_file_path):
     """
     Extract HTML content between template section comments from a file.
@@ -46,6 +49,46 @@ def extract_template_section(html_file_path):
     print(f"Error: Could not read the file with any of the attempted encodings: {', '.join(encodings)}")
     return None
 
+def replace_template_section(original_file_path, new_content, output_file_path=None):
+    """
+    Replace the template section in the original HTML file with new content and save to a new file.
+    
+    Args:
+        original_file_path (str): Path to the original HTML file
+        new_content (str): New HTML content to replace the template section with
+        output_file_path (str, optional): Path for the output file. If None, generates a name with '_generated' suffix
+        
+    Returns:
+        tuple: (bool, str) - (Success status, Output file path or error message)
+    """
+    try:
+        with open(original_file_path, 'r', encoding='utf-8') as file:
+            original_content = file.read()
+        
+        # Replace the template section in the original content
+        start_marker = "<!-- Template section start -->"
+        end_marker = "<!-- Template section end -->"
+        start_index = original_content.find(start_marker)
+        end_index = original_content.find(end_marker) + len(end_marker)
+        
+        if start_index == -1 or end_index == -1:
+            return False, "Could not find template markers in the original file"
+            
+        new_html = original_content[:start_index] + start_marker + "\n" + new_content + "\n" + end_marker + original_content[end_index:]
+        
+        # Generate output file path if not provided
+        if output_file_path is None:
+            output_file_path = original_file_path.rsplit('.', 1)[0] + '_generated.html'
+        
+        # Save the new content
+        with open(output_file_path, 'w', encoding='utf-8') as file:
+            file.write(new_html)
+        
+        return True, output_file_path
+        
+    except Exception as e:
+        return False, f"Error while replacing template: {str(e)}"
+
 # Example usage:
 if __name__ == "__main__":
     import sys
@@ -59,7 +102,35 @@ if __name__ == "__main__":
     
     print(f"Processing HTML file: {file_path}")
     template = extract_template_section(file_path)
-    
+
+    news_api = NewsAPI()
+    entertainment_articles = news_api.get_articles('entertainment')
+    general_articles = news_api.get_articles('general')
+    # get personality data
+    # Generate personality traits
+    personality_traits = """Happiness: 7/10
+        Excitement: 4/10
+        Sarcasm: 8/10
+        Professionalism: 6/10
+        Humor: 5/10"""
+
+    # Format news data
+    news_data = ""
+    for article in entertainment_articles + general_articles:
+        news_data += f"\n{article['title']}\n"
+        news_data += f"Source: {article['source']['name']}\n"
+        news_data += f"Description: {article['description']}\n"
+
+    posts = generate_social_posts(news_data, personality_traits)
+    html_content = build_html_from_posts(posts, template)
+
+    # Replace template section and save to new file
+    success, result = replace_template_section(file_path, html_content)
+    if success:
+        print(f"\nGenerated HTML saved to: {result}")
+    else:
+        print(f"\nError: {result}")
+
     if template:
         print("\nExtracted template section:")
         print(template)
