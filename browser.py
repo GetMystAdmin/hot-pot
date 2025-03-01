@@ -2,7 +2,8 @@ import sys
 from PyQt6.QtCore import QUrl, Qt, QTimer, QSize
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget,
                            QVBoxLayout, QLineEdit, QHBoxLayout,
-                           QPushButton, QFrame, QLabel, QListWidget)
+                           QPushButton, QFrame, QLabel, QListWidget,
+                           QMessageBox, QCheckBox)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtGui import QColor, QPalette, QFont, QIcon, QPainter
 from urllib.parse import urlparse
@@ -15,8 +16,11 @@ import random
 import os
 from pathlib import Path
 from extract_template import generate_personalized_content
-from PyQt6.QtCore import QPropertyAnimation, QPoint, QEasingCurve
+from PyQt6.QtCore import QPropertyAnimation, QPoint, QEasingCurve, QObject, QEvent, QThread
 from generate_code import get_code_from_screenshot
+import asyncio
+import websockets
+import qasync
 
 # Create a constant for the podcasts directory
 PODCASTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podcasts')
@@ -240,11 +244,40 @@ class LoadingOverlay(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(self.rect(), 10, 10)
 
+# Create a helper class to run async tasks in Qt
+class AsyncHelper(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.loop = None
+        
+    def setup_event_loop(self):
+        # Create and set the event loop
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
+    def run_async(self, coro):
+        """Run an async coroutine from a synchronous context"""
+        if self.loop is None:
+            self.setup_event_loop()
+            
+        # Create a future to get the result
+        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        return future
+
 class Browser(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Modern Web Browser')
         self.setGeometry(100, 100, 1400, 800)
+        
+        # Create async helper
+        self.async_helper = AsyncHelper(self)
+        
+        # Start the event loop in a separate thread
+        self.async_thread = QThread()
+        self.async_helper.moveToThread(self.async_thread)
+        self.async_thread.started.connect(self.async_helper.setup_event_loop)
+        self.async_thread.start()
         
         # Set the window background color
         self.setStyleSheet('''
@@ -274,6 +307,22 @@ class Browser(QMainWindow):
             }
             QListWidget::item:hover {
                 background-color: #404040;
+            }
+            QCheckBox {
+                color: #FFFFFF;
+                font-size: 14px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                background-color: #2A2A2A;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #4CAF50;
+            }
+            QCheckBox::indicator:unchecked {
+                background-color: #F44336;
             }
         ''')
 
@@ -333,11 +382,17 @@ class Browser(QMainWindow):
         self.refresh_button = QPushButton("↻")
         self.refresh_button.setStyleSheet(nav_buttons_style)
         self.refresh_button.clicked.connect(lambda: self.web_view.reload())
+        
+        # Generate HTML button
+        self.generate_html_button = QPushButton("⚡ Generate HTML")
+        self.generate_html_button.setStyleSheet(nav_buttons_style)
+        self.generate_html_button.clicked.connect(self.generate_html_from_current_page)
 
         # Add navigation buttons to top layout
         top_layout.addWidget(self.back_button)
         top_layout.addWidget(self.forward_button)
         top_layout.addWidget(self.refresh_button)
+        top_layout.addWidget(self.generate_html_button)
 
         # Create modern URL bar
         self.url_bar = ModernUrlBar()
@@ -346,6 +401,24 @@ class Browser(QMainWindow):
 
         # Add top bar to browser layout
         browser_layout.addWidget(top_bar)
+
+        # Create options bar
+        options_bar = QWidget()
+        options_layout = QHBoxLayout(options_bar)
+        options_layout.setSpacing(10)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Auto-generate HTML toggle
+        self.auto_generate_checkbox = QCheckBox("Auto-generate HTML")
+        self.auto_generate_checkbox.setChecked(True)  # Enable by default
+        self.auto_generate_checkbox.toggled.connect(self.toggle_auto_generate)
+        options_layout.addWidget(self.auto_generate_checkbox)
+        
+        # Add spacer to push checkbox to the left
+        options_layout.addStretch(1)
+        
+        # Add options bar to browser layout
+        browser_layout.addWidget(options_bar)
 
         # Create web view with modern styling
         self.web_view = QWebEngineView()
@@ -406,6 +479,15 @@ class Browser(QMainWindow):
         
         # Flag to track if we need to take a screenshot after page load
         self.take_screenshot_after_load = False
+        
+        # Flag to track if auto-generate is enabled
+        self.auto_generate_enabled = True
+
+    def __del__(self):
+        # Clean up the async thread when the browser is closed
+        if hasattr(self, 'async_thread') and self.async_thread.isRunning():
+            self.async_thread.quit()
+            self.async_thread.wait()
 
     def showLoading(self):
         self.loading_overlay.move(
@@ -416,6 +498,12 @@ class Browser(QMainWindow):
         
     def hideLoading(self):
         self.loading_overlay.hide()
+
+    def toggle_auto_generate(self, checked):
+        """Toggle automatic HTML generation on/off."""
+        self.auto_generate_enabled = checked
+        status = "enabled" if checked else "disabled"
+        self.show_notification("Auto-generate", f"Automatic HTML generation {status}.")
 
     def navigate_to_url(self):
         url = self.url_bar.text()
@@ -478,11 +566,12 @@ class Browser(QMainWindow):
             # If no template exists, load the actual webpage
             self.web_view.setUrl(QUrl(url))
             
-            # Set flag to take screenshot after page loads
-            self.take_screenshot_after_load = True
-            
-            # Connect the loadFinished signal to take_screenshot function
-            self.web_view.loadFinished.connect(self.take_screenshot_after_fallback)
+            # Set flag to take screenshot after page loads only if auto-generate is enabled
+            if self.auto_generate_enabled:
+                self.take_screenshot_after_load = True
+                
+                # Connect the loadFinished signal to take_screenshot function
+                self.web_view.loadFinished.connect(self.take_screenshot_after_fallback)
             
         # Hide loading overlay
         self.hideLoading()
@@ -505,12 +594,72 @@ class Browser(QMainWindow):
             self.web_view.grab().save(filepath)
             print(f"Screenshot saved to: {filepath}")
             
+            # Show loading overlay while generating code
+            self.showLoading()
+            
+            # Create a function to handle the async code generation
+            async def process_screenshot():
+                # Maximum number of retries
+                max_retries = 3
+                retry_count = 0
+                retry_delay = 2  # seconds
+                
+                try:
+                    while retry_count < max_retries:
+                        try:
+                            # Generate HTML from the screenshot
+                            generated_html = await get_code_from_screenshot(filepath)
+                            
+                            if generated_html:
+                                # Display the generated HTML in the browser
+                                self.web_view.setHtml(generated_html)
+                                print("Generated HTML displayed in browser")
+                                
+                                # Save the generated HTML for reference
+                                html_filename = f"{domain}_{timestamp}.html"
+                                html_filepath = os.path.join(SCREENSHOTS_DIR, html_filename)
+                                with open(html_filepath, 'w', encoding='utf-8') as f:
+                                    f.write(generated_html)
+                                print(f"Generated HTML saved to: {html_filepath}")
+                                
+                                # Show success notification
+                                self.show_notification("Success", "HTML generated automatically from screenshot and displayed in the browser.")
+                                break  # Exit the retry loop on success
+                            else:
+                                print("Failed to generate HTML from screenshot")
+                                # Show error notification if this is the last retry
+                                if retry_count == max_retries - 1:
+                                    self.show_notification("Error", "Failed to generate HTML from screenshot.", is_error=True)
+                        except websockets.exceptions.ConnectionError:
+                            print(f"WebSocket connection error (attempt {retry_count + 1}/{max_retries})")
+                            if retry_count == max_retries - 1:
+                                self.show_notification(
+                                    "Connection Error", 
+                                    "Could not connect to the code generation server. Make sure it's running on localhost:7001.", 
+                                    is_error=True
+                                )
+                            else:
+                                # Wait before retrying
+                                await asyncio.sleep(retry_delay)
+                        except Exception as e:
+                            print(f"Error generating code from screenshot: {str(e)}")
+                            # Show error notification if this is the last retry
+                            if retry_count == max_retries - 1:
+                                self.show_notification("Error", f"Error generating HTML: {str(e)}", is_error=True)
+                        
+                        retry_count += 1
+                finally:
+                    # Hide loading overlay
+                    self.hideLoading()
+            
+            # Run the async function using our helper
+            self.async_helper.run_async(process_screenshot())
+            
             # Reset the flag
             self.take_screenshot_after_load = False
             
             # Disconnect the signal to avoid taking screenshots on subsequent loads
             self.web_view.loadFinished.disconnect(self.take_screenshot_after_fallback)
-
 
     def update_url_bar(self, url):
         self.url_bar.setText(url.toString())
@@ -531,6 +680,121 @@ class Browser(QMainWindow):
             return mp3_files if mp3_files else default_podcasts
         except Exception:
             return default_podcasts
+
+    def generate_html_from_current_page(self):
+        """Generate HTML from the current page by taking a screenshot and processing it."""
+        # Show loading overlay
+        self.showLoading()
+        
+        # Create a unique filename based on the current URL and timestamp
+        current_url = self.web_view.url().toString()
+        domain = urlparse(current_url).netloc
+        if domain.startswith('www.'):
+            domain = domain[4:]
+        
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{domain}_{timestamp}.png"
+        filepath = os.path.join(SCREENSHOTS_DIR, filename)
+        
+        # Take the screenshot
+        self.web_view.grab().save(filepath)
+        print(f"Screenshot saved to: {filepath}")
+        
+        # Create a function to handle the async code generation
+        async def process_screenshot():
+            # Maximum number of retries
+            print("Processing screenshot...")
+            max_retries = 3
+            retry_count = 0
+            retry_delay = 2  # seconds
+            
+            try:
+                while retry_count < max_retries:
+                    try:
+                        # Generate HTML from the screenshot
+                        generated_html = await get_code_from_screenshot(filepath)
+                        
+                        if generated_html:
+                            # Display the generated HTML in the browser
+                            self.web_view.setHtml(generated_html)
+                            print("Generated HTML displayed in browser")
+                            
+                            # Save the generated HTML for reference
+                            html_filename = f"{domain}_{timestamp}.html"
+                            html_filepath = os.path.join(SCREENSHOTS_DIR, html_filename)
+                            with open(html_filepath, 'w', encoding='utf-8') as f:
+                                f.write(generated_html)
+                            print(f"Generated HTML saved to: {html_filepath}")
+                            
+                            # Show success notification
+                            self.show_notification("Success", "HTML generated successfully and displayed in the browser.")
+                            break  # Exit the retry loop on success
+                        else:
+                            print("Failed to generate HTML from screenshot")
+                            # Show error notification if this is the last retry
+                            if retry_count == max_retries - 1:
+                                self.show_notification("Error", "Failed to generate HTML from screenshot.", is_error=True)
+                    except websockets.exceptions.ConnectionError:
+                        print(f"WebSocket connection error (attempt {retry_count + 1}/{max_retries})")
+                        if retry_count == max_retries - 1:
+                            self.show_notification(
+                                "Connection Error", 
+                                "Could not connect to the code generation server. Make sure it's running on localhost:7001.", 
+                                is_error=True
+                            )
+                        else:
+                            # Wait before retrying
+                            await asyncio.sleep(retry_delay)
+                    except Exception as e:
+                        print(f"Error generating code from screenshot: {str(e)}")
+                        # Show error notification if this is the last retry
+                        if retry_count == max_retries - 1:
+                            self.show_notification("Error", f"Error generating HTML: {str(e)}", is_error=True)
+                    
+                    retry_count += 1
+            finally:
+                # Hide loading overlay
+                self.hideLoading()
+        
+        # Run the async function using our helper
+        self.async_helper.run_async(process_screenshot())
+
+    def show_notification(self, title, message, is_error=False):
+        """Show a notification message box to the user."""
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        
+        if is_error:
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+        else:
+            msg_box.setIcon(QMessageBox.Icon.Information)
+            
+        # Style the message box
+        msg_box.setStyleSheet('''
+            QMessageBox {
+                background-color: #2A2A2A;
+                color: #FFFFFF;
+            }
+            QLabel {
+                color: #FFFFFF;
+                font-size: 14px;
+                background-color: transparent;
+            }
+            QPushButton {
+                background-color: #404040;
+                border: none;
+                border-radius: 5px;
+                padding: 8px 16px;
+                color: #FFFFFF;
+            }
+            QPushButton:hover {
+                background-color: #505050;
+            }
+        ''')
+        
+        msg_box.exec()
 
 def main():
     # Enable high DPI scaling - using updated attribute names

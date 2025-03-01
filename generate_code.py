@@ -80,7 +80,9 @@ async def get_code_from_screenshot(screenshot_path: str, websocket_url: str = "w
 # Example usage
 async def main():
     # Example usage of the function - use the async version when awaiting
-    await get_code_from_screenshot("example-screen.png")
+    code = await get_code_from_screenshot("example-screen.png")
+    with open("example.html", "w", encoding="utf-8") as f:
+        f.write(code)
     
     # Or use the synchronous version without await
     # generate_html_from_screenshot("example-screen.png")
