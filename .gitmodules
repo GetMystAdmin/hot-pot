@@ -1,0 +1,3 @@
+[submodule "screenshot-to-code"]
+	path = screenshot-to-code
+	url = https://github.com/abi/screenshot-to-code.git
